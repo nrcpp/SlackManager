@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SlackPOC
 {
@@ -20,13 +16,6 @@ namespace SlackPOC
                 SlackManager.Log("Not connected. Exit");
                 return;
             }
-
-            //var channelNames = slackManager.GetChannelNames();
-            //if (channelNames.Count == 0)
-            //{
-            //    SlackManager.Log("No Channels found. Exit");
-            //    return;
-            //}
 
             var allUsers = slackManager.GetUsers();
             string testChannelName = "testchannel1";
