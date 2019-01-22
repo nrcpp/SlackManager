@@ -8,6 +8,7 @@ namespace SlackPOC
         {
             // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
             string token = "<YOUR TOKEN>";     // NOTE: remove from public after replacing
+            token = "xoxp-529125341204-528691463697-529296771073-7f114697cdfd5787e69fb5e99ef09598";
 
             var slackManager = new SlackManager(token);
             slackManager.Connect();
@@ -18,7 +19,7 @@ namespace SlackPOC
             }
 
             var allUsers = slackManager.GetUsers();
-            string testChannelName = "testchannel1";
+            string testChannelName = "testchannel3";
 
             slackManager.CreateChannel(testChannelName, allUsers);            
 

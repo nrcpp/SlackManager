@@ -18,8 +18,8 @@ namespace SlackPOC
         public string BotName { get; set; } = nameof(SlackManager);
 
 
-        public SlackManager(string token, string botName = nameof(SlackManager), IWebProxy proxySettings = null)
-            : base(token, proxySettings)
+        public SlackManager(string token, string botName = nameof(SlackManager))
+            : base(token)
         {
             BotName = botName;
         }
