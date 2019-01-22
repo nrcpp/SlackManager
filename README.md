@@ -68,10 +68,10 @@ public List<string> GetUsers(string userPrefix)
 
                         slackManager.CreateChannel(testChannelName, allUsers);            
 
-                        var users = slackManager.GetUsers("d");
+                        var users = slackManager.GetUsers();
                         Console.WriteLine($"@@@Users in workspace:\r\n" + string.Join("\r\n", users));
 
-                        // Test send/get messages for 'general' channel            
+                        // Test send/get messages for test channel            
                         slackManager.SendMessage(testChannelName, "Hello! This is a test message from `SlackManager`");
 
                         var messages = slackManager.GetMessages(testChannelName, DateTime.Today);
