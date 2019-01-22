@@ -7,9 +7,9 @@ namespace SlackPOC
         static void Main(string[] args)
         {
             // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
-            string token = "xoxp-529125341204-529125341956-529297732770-3b0a7551daa157d35d66a833b4fe7b05";
+            string token = "<YOUR TOKEN>";
 
-            var slackManager = new SlackManager(token);
+            var slackManager = new SlackManager(token, "Slack Manager", proxySettings);
             slackManager.Connect();
             if (!slackManager.IsConnected)
             {
@@ -30,6 +30,9 @@ namespace SlackPOC
 
             var messages = slackManager.GetMessages(testChannelName, DateTime.Today);
             Console.WriteLine($"Messages from #{testChannelName}:\r\n" + string.Join("\r\n", messages));
+
+            Console.WriteLine("Press Enter to exit...");
+            Console.ReadLine();
         }
     }
 }

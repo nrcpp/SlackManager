@@ -33,9 +33,11 @@ public List<string> GetUsers(string userPrefix)
 
 ## Notes
 
-1. All Slack API response results will be logged to Console. Such as OK or reason of error.
-2. For most of method calls there is a check to ensure connection to Slack endpoint. If there is no connection, then it connects again. So `Connect()` method call is optional in most cases. 
-3. SlackManager.GetMessages(long messageId) isn't work because Slack API does not return message.id. See https://api.slack.com/methods/channels.history *Response* section
+1. Slack API requires token which you can obtain from https://api.slack.com/custom-integrations/legacy-tokens. Then you could paste it on object creation `new SlackManager(token)`.
+2. All Slack API response results will be logged to Console. Such as OK or reason of error.
+3. For most of method calls there is a check to ensure connection to Slack endpoint. If there is no connection, then it connects again. So `Connect()` method call is optional in most cases. 
+4. SlackManager.GetMessages(long messageId) isn't work because Slack API does not return message.id. See https://api.slack.com/methods/channels.history *Response* section
+5. You could set proxy settings and bot name within constructor `SlackManager(token, "Slack Manager", proxySettings)`.
 
 
 ## Example Code
