@@ -87,6 +87,18 @@ namespace SlackPOC
             return userName;
         }
 
+
+        private string NormalizeMessage(string text)
+        {
+            var dict = Users.ToDictionary(u => u.id, u => u.name);
+            foreach (var item in dict)
+            {
+                text = text.Replace($"<@{item.Key}>", "@" + item.Value);
+            }
+
+            return text;
+        }
+
         #endregion
 
 
@@ -138,7 +150,7 @@ namespace SlackPOC
             if (messageId != null)
                 messages = messages.Where(m => m.id == messageId.Value);
 
-            result = messages.Select(m => $"<{m.id}> [{m.ts}]: @{GetUserById(m.user, m.username)}: {m.text}").Reverse().ToList();
+            result = messages.Select(m => $"<{m.id}> [{m.ts}]: @{GetUserById(m.user, m.username)}: {NormalizeMessage(m.text)}").Reverse().ToList();
 
             return result;
         }
