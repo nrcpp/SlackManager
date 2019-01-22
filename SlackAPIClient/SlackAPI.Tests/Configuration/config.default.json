@@ -1,0 +1,16 @@
+﻿{
+  "slack": {
+    "userAuthToken": "token-tokentoken-tokentoken-tokentoken-token",
+    "botAuthToken": "bottoken-bottoken-bottoken-bottoken",
+    "testChannel": "SuperSecretChannel",
+    "directMessageUser": "someUserId",
+
+    // Application GetAccessToken
+    "clientId": "your-special-id",
+    "clientSecret": "such-special-secret-key",
+    "redirectUrl": "http://redirecturl",
+    "authUsername": "user@domain.com",
+    "authPassword": "userpassword",
+    "authWorkspace": "workspace"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$id": "5",
+  "AutoRefresh": true,
+  "AutoRefreshRemotes": true,
+  "CommitTextLinks": null,
+  "DraftCommitMsg": "",
+  "IncomingSavedCount": 0,
+  "LastCheckedRemotes": "0001-01-01T00:00:00",
+  "LastUsedView": 1,
+  "LogBranchFilterIndex": 0,
+  "OutgoingSavedCount": 0,
+  "RemoteProjectLinks": [
+    {
+      "$id": "6",
+      "BaseUrl": "https://www.github.com",
+      "Identifier": "Inumedia/SlackAPI",
+      "RemoteName": "origin",
+      "Type": 0,
+      "Username": "nrcpp",
+      "CloneUrl": null,
+      "DisplayName": "origin: https://www.github.com"
+    }
+  ],
+  "SidebarExpandedItems": [
+    "File Status",
+    "Branches"
+  ],
+  "SidebarWidth": 210.0,
+  "SubtreeLinks": []
+}
