@@ -7,9 +7,9 @@ namespace SlackPOC
         static void Main(string[] args)
         {
             // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
-            string token = "<YOUR TOKEN>";
+            string token = "<YOUR TOKEN>";     // NOTE: remove from public after replacing
 
-            var slackManager = new SlackManager(token, "Slack Manager", proxySettings);
+            var slackManager = new SlackManager(token);
             slackManager.Connect();
             if (!slackManager.IsConnected)
             {
