@@ -19,7 +19,7 @@ public List<string> GetMessages(string channelName, DateTime from)
 public List<string> GetMessages(string channelName, long messageId)
         
 // Creates new channel and invites users from list.
-// If channel has incorrect name of already exists then error will be logged
+// If channel has incorrect name or already exists then error will be logged
 public void CreateChannel(string channelName, List<string> channelUsers)
         
 // Returns all users from workspace
