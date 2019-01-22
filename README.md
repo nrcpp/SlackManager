@@ -38,7 +38,7 @@ public List<string> GetUsers(string userPrefix)
 3. For most of method calls there is a check to ensure connection to Slack endpoint. If there is no connection, then it connects again. So `Connect()` method call is optional in most cases. 
 4. SlackManager.GetMessages(long messageId) isn't work because Slack API does not return message.id. See https://api.slack.com/methods/channels.history *Response* section
 5. You could set proxy settings and bot name within constructor `SlackManager(token, "Slack Manager", proxySettings)`.
-6. *NOTE:* that you can't share your token with other users in public, including github or other public links. Then Slack will revoke such token.
+6. **NOTE:** that you can't share your token with other users in public, including github or other public links. Then Slack will revoke such token.
 
 
 ## Example Code
