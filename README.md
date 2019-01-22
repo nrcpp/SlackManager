@@ -53,7 +53,7 @@ public List<string> GetUsers(string userPrefix)
                     static void Main(string[] args)
                     {
                         // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
-                        string token = "xoxp-529125341204-529125341956-529297732770-3b0a7551daa157d35d66a833b4fe7b05";
+                        string token = "<Your Slack API Token>";
 
                         var slackManager = new SlackManager(token);
                         slackManager.Connect();
