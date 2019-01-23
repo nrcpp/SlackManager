@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace SlackPOC
 {
@@ -9,8 +10,11 @@ namespace SlackPOC
             // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
             string token = "<YOUR TOKEN>";     // NOTE: remove from public after replacing
             
-
             var slackManager = new SlackManager(token);
+
+            // New messages handler
+            slackManager.OnNewMessage += m => { Console.WriteLine("New message: " + m); };
+
             slackManager.Connect();
             if (!slackManager.IsConnected)
             {
@@ -32,7 +36,14 @@ namespace SlackPOC
             var messages = slackManager.GetMessages(testChannelName, DateTime.Today);
             Console.WriteLine($"Messages from #{testChannelName}:\r\n" + string.Join("\r\n", messages));
 
-            Console.WriteLine("Press Enter to exit...");
+            Console.WriteLine("Press Enter to get new messages...");
+            Console.ReadLine();
+
+            // get new messages
+            messages = slackManager.GetNewMessages(new List<string>() { testChannelName });
+            Console.WriteLine("New messages:\r\n" + string.Join("\r\n", messages.ConvertAll<string>(m => m.AsString)));
+
+            Console.WriteLine("\r\nPress Enter to exit...");
             Console.ReadLine();
         }
     }

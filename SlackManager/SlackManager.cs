@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -7,22 +8,175 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SlackAPI;
+using SlackAPI.WebSocketMessages;
 
 namespace SlackPOC
 {
+    public class InSync : IDisposable
+    {
+        private readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(15);
+
+        private readonly ManualResetEventSlim waiter;
+        private readonly string message;
+
+        public InSync([CallerMemberName] string message = null)
+        {
+            this.message = message;
+            this.waiter = new ManualResetEventSlim();
+        }
+
+        public void Proceed()
+        {
+            this.waiter.Set();
+        }
+
+        public void Dispose()
+        {
+            if (!this.waiter.Wait(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : this.WaitTimeout))
+                Console.WriteLine($"Took too long to do '{this.message}'");
+        }
+    }
+
+    public class ChannelMessage
+    {
+        public DateTime Time { get; set; }
+        public string User { get; set; }
+        public string Username { get; set; }
+        public string Text { get; set; }
+        public string ChannelId { get; }
+        public bool IsStarred { get; set; }
+
+        public string AsString { get; set; } = "";
+
+
+        public ChannelMessage() { }
+        public ChannelMessage(NewMessage message)
+        {
+            Time = message.ts;
+            User = message.user;
+            Username = message.username;
+            Text = message.text;
+            ChannelId = message.channel;
+            IsStarred = false;
+        }
+
+        public ChannelMessage(SlackAPI.Message message)
+        {
+            Time = message.ts;
+            User = message.user;
+            Username = message.username;
+            Text = message.text;
+            ChannelId = message.channel;
+            IsStarred = message.is_starred;
+        }
+
+        public override string ToString()
+        {
+            if (!string.IsNullOrEmpty(AsString))
+                return AsString;
+            
+            return $"[{Time}]: @{User} ({Username}): {Text}";
+        }
+    }
+
+
+    public class Utils
+    {
+        public static string GetUserById(List<User> Users, string userId, string userName)
+        {
+            if (string.IsNullOrEmpty(userName))
+                userName = Users.FirstOrDefault(u => u.id == userId)?.name ?? userId;
+            return userName;
+        }
+
+
+        public static string NormalizeMessage(List<User> Users, string text)
+        {
+            var dict = Users.ToDictionary(u => u.id, u => u.name);
+            foreach (var item in dict)
+            {
+                text = text.Replace($"<@{item.Key}>", "@" + item.Value);
+            }
+
+            return text;
+        }
+
+        public static string AsStr(List<User> Users, dynamic m) => 
+            $"[{m.ts}]: @{Utils.GetUserById(Users, m.user, m.username)}: {Utils.NormalizeMessage(Users, m.text)}";
+    }
+
+
     public class SlackManager : SlackAPI.SlackTaskClient
     {
         private bool _isConnected;
+        SlackSocketClient _socketClient;
+        private List<ChannelMessage> _newMessages = new List<ChannelMessage>();
+
 
         public bool IsConnected => _isConnected;
         public string BotName { get; set; } = nameof(SlackManager);
+
+        public event Action<ChannelMessage> OnNewMessage;
 
 
         public SlackManager(string token, string botName = nameof(SlackManager))
             : base(token)
         {
             BotName = botName;
+            
+            _socketClient = CreateClient(token);
+            _socketClient.OnMessageReceived += msg =>
+            {                
+                var channelMsg = new ChannelMessage(msg)
+                {
+                    AsString = Utils.AsStr(_socketClient.Users, msg)
+                };
+
+                _newMessages.Add(channelMsg);
+                OnNewMessage?.Invoke(channelMsg);
+            };
         }
+
+
+        #region Socket Client
+
+        private SlackSocketClient CreateClient(string authToken, IWebProxy proxySettings = null)
+        {
+            SlackSocketClient client;
+
+            LoginResponse loginResponse = null;
+            using (var syncClient = new InSync($"{nameof(SlackClient.Connect)} - Connected callback"))
+            using (var syncClientSocket = new InSync($"{nameof(SlackClient.Connect)} - SocketConnected callback"))
+            using (var syncClientSocketHello = new InSync($"{nameof(SlackClient.Connect)} - SocketConnected hello callback"))
+            {
+                client = new SlackSocketClient(authToken);
+                client.OnHello += () => syncClientSocketHello.Proceed();
+                client.Connect(x =>
+                {
+                    loginResponse = x;
+
+                    Console.WriteLine($"Connected {x.ok}");
+                    syncClient.Proceed();
+                    if (!x.ok)
+                    {
+                        // If connect fails, socket connect callback is not called
+                        syncClientSocket.Proceed();
+                        syncClientSocketHello.Proceed();
+                    }
+                }, () =>
+                {
+                    Console.WriteLine("Socket Connected");
+                    syncClientSocket.Proceed();
+                });
+            }
+
+            loginResponse.AssertOk();
+
+            return client;
+        }
+
+        #endregion
+
 
         #region Helper Methods and Overrides
 
@@ -80,24 +234,6 @@ namespace SlackPOC
             return channel;
         }
 
-        string GetUserById(string userId, string userName)
-        {
-            if (string.IsNullOrEmpty(userName))
-                userName = Users.FirstOrDefault(u => u.id == userId)?.name ?? userId;
-            return userName;
-        }
-
-
-        private string NormalizeMessage(string text)
-        {
-            var dict = Users.ToDictionary(u => u.id, u => u.name);
-            foreach (var item in dict)
-            {
-                text = text.Replace($"<@{item.Key}>", "@" + item.Value);
-            }
-
-            return text;
-        }
 
         #endregion
 
@@ -124,13 +260,13 @@ namespace SlackPOC
         }
 
 
-        public List<string> GetMessages(string channelName) => GetMessages(channelName, from: null, messageId: null);
-        public List<string> GetMessages(string channelName, DateTime from) => GetMessages(channelName, from: from, messageId: null);
-        public List<string> GetMessages(string channelName, long messageId) => GetMessages(channelName, from: null, messageId: messageId);
+        public List<ChannelMessage> GetMessages(string channelName) => GetMessages(channelName, from: null, messageId: null);
+        public List<ChannelMessage> GetMessages(string channelName, DateTime from) => GetMessages(channelName, from: from, messageId: null);
+        public List<ChannelMessage> GetMessages(string channelName, long messageId) => GetMessages(channelName, from: null, messageId: messageId);
 
-        public List<string> GetMessages(string channelName, DateTime? from, long? messageId)
+        public List<ChannelMessage> GetMessages(string channelName, DateTime? from, long? messageId)
         {
-            var result = new List<string>();
+            var result = new List<ChannelMessage>();
 
             var channel = GetChannelByName(channelName);
             if (channel == null) return result;
@@ -149,8 +285,25 @@ namespace SlackPOC
             // message.id always 0
             if (messageId != null)
                 messages = messages.Where(m => m.id == messageId.Value);
+            
+            result = messages.Select(m => new ChannelMessage(m) { AsString = Utils.AsStr(Users, m) }).Reverse().ToList();
 
-            result = messages.Select(m => $"<{m.id}> [{m.ts}]: @{GetUserById(m.user, m.username)}: {NormalizeMessage(m.text)}").Reverse().ToList();
+            return result;
+        }
+
+        public List<ChannelMessage> GetNewMessages(List<string> channels)
+        {
+            List<ChannelMessage> result = new List<ChannelMessage>();
+            foreach (var channelName in channels)
+            {
+                var channelId = Channels.FirstOrDefault(c => c.name == channelName)?.id;
+                if (channelId == null) continue;
+
+                var newMsgs = _newMessages.Where(m => m.ChannelId == channelId);
+                result.AddRange(newMsgs);
+
+                _newMessages.RemoveAll(m => m.ChannelId == channelId);
+            }
 
             return result;
         }
