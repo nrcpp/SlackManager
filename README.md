@@ -41,7 +41,7 @@ public List<string> GetUsers(string userPrefix)
 4. SlackManager.GetMessages(long messageId) isn't work because Slack API does not return message.id. See https://api.slack.com/methods/channels.history *Response* section
 5. You could set proxy settings and bot name within constructor `SlackManager(token, "Slack Manager", proxySettings)`.
 6. **NOTE:** that you can't share your token with other users in public, including github or other public links. Then Slack will revoke such token.
-7. **NOTE:** that if user leaved channel himself then you can't add it to channel
+
 
 
 ## Example Code
