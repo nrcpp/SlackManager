@@ -19,10 +19,11 @@ namespace SlackPOC
             {
                 string testUser = users[1];     // can't invite self - users[0]
 
+                // Uncomment to invite user
                 //slackManager.AddUserToChannel(testChannelName, testUser);
 
                 // Uncomment to remove user next time.                 
-                slackManager.RemoveUserFromChannel(testChannelName, "testwaggonerdx");
+                //slackManager.RemoveUserFromChannel(testChannelName, testUser);
             }
             else
                 Console.WriteLine($"No users in channel #{testChannelName} to add/remove");
