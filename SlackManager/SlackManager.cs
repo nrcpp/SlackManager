@@ -11,101 +11,7 @@ using SlackAPI;
 using SlackAPI.WebSocketMessages;
 
 namespace SlackPOC
-{
-    public class InSync : IDisposable
-    {
-        private readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(15);
-
-        private readonly ManualResetEventSlim waiter;
-        private readonly string message;
-
-        public InSync([CallerMemberName] string message = null)
-        {
-            this.message = message;
-            this.waiter = new ManualResetEventSlim();
-        }
-
-        public void Proceed()
-        {
-            this.waiter.Set();
-        }
-
-        public void Dispose()
-        {
-            if (!this.waiter.Wait(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : this.WaitTimeout))
-                Console.WriteLine($"Took too long to do '{this.message}'");
-        }
-    }
-
-    public class ChannelMessage
-    {
-        public DateTime Time { get; set; }
-        public string User { get; set; }
-        public string Username { get; set; }
-        public string Text { get; set; }
-        public string ChannelId { get; }
-        public bool IsStarred { get; set; }
-
-        public string AsString { get; set; } = "";
-
-
-        public ChannelMessage() { }
-        public ChannelMessage(NewMessage message)
-        {
-            Time = message.ts;
-            User = message.user;
-            Username = message.username;
-            Text = message.text;
-            ChannelId = message.channel;
-            IsStarred = false;
-        }
-
-        public ChannelMessage(SlackAPI.Message message)
-        {
-            Time = message.ts;
-            User = message.user;
-            Username = message.username;
-            Text = message.text;
-            ChannelId = message.channel;
-            IsStarred = message.is_starred;
-        }
-
-        public override string ToString()
-        {
-            if (!string.IsNullOrEmpty(AsString))
-                return AsString;
-            
-            return $"[{Time}]: @{User} ({Username}): {Text}";
-        }
-    }
-
-
-    public class Utils
-    {
-        public static string GetUserById(List<User> Users, string userId, string userName)
-        {
-            if (string.IsNullOrEmpty(userName))
-                userName = Users.FirstOrDefault(u => u.id == userId)?.name ?? userId;
-            return userName;
-        }
-
-
-        public static string NormalizeMessage(List<User> Users, string text)
-        {
-            var dict = Users.ToDictionary(u => u.id, u => u.name);
-            foreach (var item in dict)
-            {
-                text = text.Replace($"<@{item.Key}>", "@" + item.Value);
-            }
-
-            return text;
-        }
-
-        public static string AsStr(List<User> Users, dynamic m) => 
-            $"[{m.ts}]: @{Utils.GetUserById(Users, m.user, m.username)}: {Utils.NormalizeMessage(Users, m.text)}";
-    }
-
-
+{    
     public class SlackManager : SlackAPI.SlackTaskClient
     {
         private bool _isConnected;
@@ -114,6 +20,9 @@ namespace SlackPOC
 
 
         public bool IsConnected => _isConnected;
+
+        private string _token;
+
         public string BotName { get; set; } = nameof(SlackManager);
 
         public event Action<ChannelMessage> OnNewMessage;
@@ -122,11 +31,18 @@ namespace SlackPOC
         public SlackManager(string token, string botName = nameof(SlackManager))
             : base(token)
         {
-            BotName = botName;
-            
-            _socketClient = CreateClient(token);
+            _token = token;
+            BotName = botName;            
+        }
+
+
+        #region Socket Client
+
+        private void ConnectSocketClient()
+        {            
+            _socketClient = CreateClient(_token);
             _socketClient.OnMessageReceived += msg =>
-            {                
+            {
                 var channelMsg = new ChannelMessage(msg)
                 {
                     AsString = Utils.AsStr(_socketClient.Users, msg)
@@ -136,9 +52,6 @@ namespace SlackPOC
                 OnNewMessage?.Invoke(channelMsg);
             };
         }
-
-
-        #region Socket Client
 
         private SlackSocketClient CreateClient(string authToken, IWebProxy proxySettings = null)
         {
@@ -246,6 +159,8 @@ namespace SlackPOC
             _isConnected = loginResponse.ok;
 
             Log(loginResponse);
+
+            if (_isConnected) ConnectSocketClient();
         }
 
 
@@ -328,18 +243,18 @@ namespace SlackPOC
             return true;
         }
 
-        private void InviteUser(Channel channel, string userName)
+        private void InviteUser(Channel channel, string userName, [CallerMemberName] string caller = null)
         {
             var channelParam = new Tuple<string, string>("channel", channel.id);
             var userObj = Users.FirstOrDefault(u => u.name == userName);
             if (userObj == null)
             {
-                Log("User not found - " + userName);
+                Log("User not found - " + userName, caller);
                 return;
             }
             if (userObj.IsSlackBot)
             {
-                Log("User is SlackBot - " + userName);
+                Log("User is SlackBot - " + userName, caller);
                 return;
             }            
 
@@ -347,7 +262,25 @@ namespace SlackPOC
 
             var response = APIRequestWithTokenAsync<InviteChannelResponse>(channelParam, userParam).Result;
 
-            Log(response);
+            Log(response, caller);
+        }
+
+        public bool AddUserToChannel(string channelName, string userName)
+        {
+            Connect();
+            if (!EnsureConnected()) return false;
+
+            var channel = Channels.FirstOrDefault(ch => ch.name == channelName);
+            if (channel == null)
+            {
+                Log("Channel not found - " + channelName);
+                return false;
+            }
+
+            InviteUser(channel, userName);
+
+            return true;
+
         }
 
         public List<string> GetUsers(string userPrefix)
