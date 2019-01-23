@@ -39,8 +39,12 @@ namespace SlackPOC
         #region Socket Client
 
         private void ConnectSocketClient()
-        {            
-            _socketClient = CreateClient(_token);
+        {
+            if (_socketClient != null) return;
+            _socketClient = CreateClient(_token);            
+
+            if (_socketClient == null) return;
+
             _socketClient.OnMessageReceived += msg =>
             {
                 var channelMsg = new ChannelMessage(msg)
@@ -53,7 +57,7 @@ namespace SlackPOC
             };
         }
 
-        private SlackSocketClient CreateClient(string authToken, IWebProxy proxySettings = null)
+        private SlackSocketClient CreateClient(string authToken, IWebProxy proxySettings = null, [CallerMemberName] string caller = null)
         {
             SlackSocketClient client;
 
@@ -68,7 +72,7 @@ namespace SlackPOC
                 {
                     loginResponse = x;
 
-                    Console.WriteLine($"Connected {x.ok}");
+                    //Console.WriteLine($"[CreateClient]: {x.ok}");
                     syncClient.Proceed();
                     if (!x.ok)
                     {
@@ -78,7 +82,7 @@ namespace SlackPOC
                     }
                 }, () =>
                 {
-                    Console.WriteLine("Socket Connected");
+                    //Console.WriteLine("[CreateClient]: Socket Connected");
                     syncClientSocket.Proceed();
                 });
             }
@@ -153,14 +157,18 @@ namespace SlackPOC
 
         #region Core Methods
 
-        public void Connect()
+        /// <summary>
+        /// Connects to Slack and could connect through socket to handle real-time events
+        /// </summary>
+        /// <param name="connectSocket">If true, will connect via socket as well to handle new messages</param>
+        public void Connect(bool connectSocket = true)
         {
             var loginResponse = base.ConnectAsync().Result;
             _isConnected = loginResponse.ok;
 
             Log(loginResponse);
 
-            if (_isConnected) ConnectSocketClient();
+            if (_isConnected && connectSocket) ConnectSocketClient();
         }
 
 
@@ -243,7 +251,7 @@ namespace SlackPOC
             return true;
         }
 
-        private void InviteUser(Channel channel, string userName, [CallerMemberName] string caller = null)
+        private void InviteOrRemoveUser<T>(Channel channel, string userName, [CallerMemberName] string caller = null) where T : Response
         {
             var channelParam = new Tuple<string, string>("channel", channel.id);
             var userObj = Users.FirstOrDefault(u => u.name == userName);
@@ -260,14 +268,20 @@ namespace SlackPOC
 
             var userParam = new Tuple<string, string>("user", userObj.id);
 
-            var response = APIRequestWithTokenAsync<InviteChannelResponse>(channelParam, userParam).Result;
+            var response = APIRequestWithTokenAsync<T>(channelParam, userParam).Result;
 
             Log(response, caller);
         }
 
+        private void InviteUser(Channel channel, string userName, [CallerMemberName] string caller = null) =>
+            InviteOrRemoveUser<InviteChannelResponse>(channel, userName, caller);
+
+        private void RemoveUser(Channel channel, string userName, [CallerMemberName] string caller = null) =>
+            InviteOrRemoveUser<RemoveChannelResponse>(channel, userName, caller);
+        
+
         public bool AddUserToChannel(string channelName, string userName)
-        {
-            Connect();
+        {            
             if (!EnsureConnected()) return false;
 
             var channel = Channels.FirstOrDefault(ch => ch.name == channelName);
@@ -280,7 +294,30 @@ namespace SlackPOC
             InviteUser(channel, userName);
 
             return true;
+        }
 
+
+        /// <summary>
+        /// https://api.slack.com/methods/channels.kick - see for restrictions
+        /// https://get.slack.help/hc/en-us/articles/201898668-Remove-someone-from-a-channel - see whom may be kicked
+        /// </summary>
+        /// <param name="channelName"></param>
+        /// <param name="userName"></param>
+        /// <returns></returns>
+        public bool RemoveUserFromChannel(string channelName, string userName)
+        {            
+            if (!EnsureConnected()) return false;
+
+            var channel = Channels.FirstOrDefault(ch => ch.name == channelName);
+            if (channel == null)
+            {
+                Log("Channel not found - " + channelName);
+                return false;
+            }
+
+            RemoveUser(channel, userName);
+
+            return true;
         }
 
         public List<string> GetUsers(string userPrefix)
@@ -315,5 +352,16 @@ namespace SlackPOC
     public class InviteChannelResponse : Response
     {
         public Channel channel;
-    }    
+    }
+
+    [RequestPath("channels.kick")]
+    public class RemoveChannelResponse : Response
+    {        
+    }
+
+    [RequestPath("channels.join")]
+    public class JoinChannelResponse : Response
+    {
+        public Channel channel;
+    }
 }

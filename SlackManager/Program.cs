@@ -6,6 +6,29 @@ namespace SlackPOC
 {
     class Program
     {
+        const string testChannelName = "testchannel1";
+        static SlackManager slackManager;
+
+        static void TestCreateChannel_AddRemoveUser()
+        {
+            //slackManager.CreateChannel(testChannelName, new List<string>() { });
+            var users = slackManager.GetUsers();
+
+            // add/remove user to channel
+            if (users.Count >= 2)
+            {
+                string testUser = users[1];     // can't invite self - users[0]
+
+                //slackManager.AddUserToChannel(testChannelName, testUser);
+
+                // Uncomment to remove user next time.                 
+                slackManager.RemoveUserFromChannel(testChannelName, "testwaggonerdx");
+            }
+            else
+                Console.WriteLine($"No users in channel #{testChannelName} to add/remove");
+        }
+
+
         static void Main(string[] args)
         {
             // obtain your token from https://api.slack.com/custom-integrations/legacy-tokens
@@ -17,7 +40,7 @@ namespace SlackPOC
                 token = File.ReadAllText("token.txt").Trim();
 #endif
 
-            var slackManager = new SlackManager(token);
+            slackManager = new SlackManager(token);
 
             // New messages handler
             slackManager.OnNewMessage += m => { Console.WriteLine("New message: " + m); };
@@ -28,22 +51,14 @@ namespace SlackPOC
                 SlackManager.Log("Not connected. Exit");
                 return;
             }
-            
-            string testChannelName = "testchannel3";
-
-            slackManager.CreateChannel(testChannelName, new List<string>() { });
+                        
             
             var users = slackManager.GetUsers();
             Console.WriteLine($"@@@Users in workspace:\r\n" + string.Join("\r\n", users));
 
-            // add/remove user to channel
-            if (users.Count >= 2)
-            {
-                string testUser = users[1];
-                slackManager.AddUserToChannel(testChannelName, testUser);
-            }
-            else
-                Console.WriteLine($"No users in channel #{testChannelName} to add/remove");
+            // Uncomment to test create channel and add/remove user there.
+            // Note there are rate limit for such operations: https://api.slack.com/docs/rate-limits
+            TestCreateChannel_AddRemoveUser();
 
             // Test send/get messages for 'general' channel            
             slackManager.SendMessage(testChannelName, "Hello! This is a test message from `SlackManager`");
