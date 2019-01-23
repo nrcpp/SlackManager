@@ -1,5 +1,7 @@
 # SlackManager
 
+_Last updated 23th Jan 2019. Check SlackManager.cs for most actual info. And Program.cs for example of usage of SlackManager._
+
 SlackManager class is an extension of SlackAPI .NET wrapper. It contains such methods:
 
 ```
