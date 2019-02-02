@@ -161,6 +161,8 @@ namespace Siemplify.Common.ExternalChannels
         /// <param name="connectSocket">If true, will connect via socket as well to handle new messages</param>
         public void Connect(bool connectSocket = true)
         {
+            _userDirectChannelIds.Clear();
+
             var loginResponse = base.ConnectAsync().Result;
             _isConnected = loginResponse.ok;
 
@@ -180,6 +182,33 @@ namespace Siemplify.Common.ExternalChannels
             Log(response);            
         }
 
+
+        Dictionary<string, string> _userDirectChannelIds = new Dictionary<string, string>();
+
+        public void SendMessageToUser(string userName, string message)
+        {
+            string userChannelId = "";
+            if (!_userDirectChannelIds.TryGetValue(userName, out userChannelId))
+            {
+                var user = GetUserListAsync().Result.members.FirstOrDefault(u => u.name == userName);
+                if (user == null)
+                {
+                    Log($"{userName} - user not found");
+                    return;
+                }
+
+                var joinResponse = JoinDirectMessageChannelAsync(user.id).Result;
+                if (!Log(joinResponse)) return;
+
+                userChannelId = joinResponse.channel.id;
+                _userDirectChannelIds.Add(userName, joinResponse.channel.id);
+            }
+
+
+            var response = base.PostMessageAsync(channelId: userChannelId, text: message,
+                                                     botName: BotName).Result;
+            Log(response);
+        }
 
         public List<ChannelMessage> GetMessages(string channelName) => GetMessages(channelName, from: null, messageId: null);
         public List<ChannelMessage> GetMessages(string channelName, DateTime from) => GetMessages(channelName, from: from, messageId: null);

@@ -26,12 +26,18 @@ namespace Siemplify.Common.ExternalChannels
 
                 // Uncomment to remove user next time.                 
                 //slackManager.RemoveUserFromChannel(testChannelName, testUser);
+
+                // Send direct message to user #2
+                slackManager.SendMessageToUser(testUser, $"Hi, {testUser}!");
+
+                // Send one more message to test cache
+                slackManager.SendMessageToUser(testUser, $"How are you doing?");
             }
             else
                 Console.WriteLine($"No users in channel #{testChannelName} to add/remove");
 
             // remove channel
-            slackManager.CloseChannel(testChannelName);
+            //slackManager.CloseChannel(testChannelName);
         }
 
 
