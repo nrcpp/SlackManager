@@ -7,10 +7,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Siemplify.Common.ExternalChannels.DataModel;
 using SlackAPI;
-using SlackAPI.WebSocketMessages;
+using SlackPOC;
 
-namespace SlackPOC
+namespace Siemplify.Common.ExternalChannels
 {    
     public class SlackManager : SlackAPI.SlackTaskClient
     {
@@ -47,10 +48,7 @@ namespace SlackPOC
 
             _socketClient.OnMessageReceived += msg =>
             {
-                var channelMsg = new ChannelMessage(msg)
-                {
-                    AsString = Utils.AsStr(_socketClient.Users, msg)
-                };
+                var channelMsg = msg.ToChannelMessage();
 
                 _newMessages.Add(channelMsg);
                 OnNewMessage?.Invoke(channelMsg);
@@ -209,7 +207,7 @@ namespace SlackPOC
             if (messageId != null)
                 messages = messages.Where(m => m.id == messageId.Value);
             
-            result = messages.Select(m => new ChannelMessage(m) { AsString = Utils.AsStr(Users, m) }).Reverse().ToList();
+            result = messages.Select(m => m.ToChannelMessage()).Reverse().ToList();
 
             return result;
         }

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
-namespace SlackPOC
+namespace Siemplify.Common.ExternalChannels
 {
     class Program
     {
@@ -44,7 +45,7 @@ namespace SlackPOC
             slackManager = new SlackManager(token);
 
             // New messages handler
-            slackManager.OnNewMessage += m => { Console.WriteLine("New message: " + m); };
+            slackManager.OnNewMessage += m => { Console.WriteLine("New message: " + Utils.AsString(m)); };
 
             slackManager.Connect();
             if (!slackManager.IsConnected)
@@ -65,14 +66,14 @@ namespace SlackPOC
             slackManager.SendMessage(testChannelName, "Hello! This is a test message from `SlackManager`");
 
             var messages = slackManager.GetMessages(testChannelName, DateTime.Today);
-            Console.WriteLine($"Messages from #{testChannelName}:\r\n" + string.Join("\r\n", messages));
+            Console.WriteLine($"Messages from #{testChannelName}:\r\n" + string.Join("\r\n", messages.Select(m => m.AsString())));
 
             Console.WriteLine("Press Enter to get new messages...");
             Console.ReadLine();
 
             // get new messages
             messages = slackManager.GetNewMessages(new List<string>() { testChannelName });
-            Console.WriteLine("New messages:\r\n" + string.Join("\r\n", messages.ConvertAll<string>(m => m.AsString)));
+            Console.WriteLine("New messages:\r\n" + string.Join("\r\n", messages.ConvertAll(m => m.AsString())));
 
             Console.WriteLine("\r\nPress Enter to exit...");
             Console.ReadLine();
