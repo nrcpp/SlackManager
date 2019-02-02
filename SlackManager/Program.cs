@@ -7,12 +7,13 @@ namespace Siemplify.Common.ExternalChannels
 {
     class Program
     {
-        const string testChannelName = "testchannel1";
+        const string testChannelName = "testchannel2";
         static SlackManager slackManager;
 
         static void TestCreateChannel_AddRemoveUser()
         {
             //slackManager.CreateChannel(testChannelName, new List<string>() { });
+            
             var users = slackManager.GetUsers();
 
             // add/remove user to channel
@@ -28,6 +29,9 @@ namespace Siemplify.Common.ExternalChannels
             }
             else
                 Console.WriteLine($"No users in channel #{testChannelName} to add/remove");
+
+            // remove channel
+            slackManager.CloseChannel(testChannelName);
         }
 
 

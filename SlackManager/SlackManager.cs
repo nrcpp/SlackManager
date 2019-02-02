@@ -244,10 +244,33 @@ namespace Siemplify.Common.ExternalChannels
                 InviteUser(response.channel, user);
             }
 
-            _isConnected = false;       // re-connect on next call to obtain actual info
+            //_isConnected = false;       // re-connect on next call to obtain actual info. Note, this may cause reaching request limit 
 
             return true;
         }
+
+
+        // Undocumented Slack API call. See https://github.com/ErikKalkoken/slackApiDoc/blob/master/channels.delete.md
+        public bool CloseChannel(string channelName)
+        {
+            if (!EnsureConnected()) return false;
+
+            var channel = GetChannelListAsync().Result.channels.FirstOrDefault(ch => ch.name == channelName);
+            if (channel == null)
+            {
+                Log($"{channelName} - channel not found");
+                return false;
+            }
+
+
+            var channelParam = new Tuple<string, string>("channel", channel.id);
+            var response = APIRequestWithTokenAsync<DeleteChannelResponse>(channelParam).Result;
+
+            if (!Log(response)) return false;            
+
+            return true;
+        }
+
 
         private void InviteOrRemoveUser<T>(Channel channel, string userName, [CallerMemberName] string caller = null) where T : Response
         {
@@ -337,14 +360,7 @@ namespace Siemplify.Common.ExternalChannels
         public List<string> GetUsers() => GetUsers(null);
 
         #endregion
-    }
-
-
-    [RequestPath("channels.create")]
-    public class CreateChannelResponse : Response
-    {
-        public Channel channel;
-    }
+    }    
 
     [RequestPath("channels.invite")]
     public class InviteChannelResponse : Response
@@ -361,5 +377,18 @@ namespace Siemplify.Common.ExternalChannels
     public class JoinChannelResponse : Response
     {
         public Channel channel;
+    }
+
+    [RequestPath("channels.create")]
+    public class CreateChannelResponse : Response
+    {
+        public Channel channel;
+    }
+
+
+    // NOTE: this is undocumented method. Use 'channels.archive' instead
+    [RequestPath("channels.delete")]
+    public class DeleteChannelResponse : Response
+    {        
     }
 }
